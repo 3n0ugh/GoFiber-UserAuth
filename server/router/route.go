@@ -9,7 +9,6 @@ func SetupRoutes(app *fiber.App) {
 	// Middleware
 	api := app.Group("/auth")
 
-	api.Get("/", handler.Hello)
 	api.Post("/signup", handler.Signup)
 	api.Post("/login", handler.Login)
 }
