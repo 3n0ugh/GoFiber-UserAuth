@@ -13,7 +13,7 @@ import (
 type User struct {
 	Username   string `json:"username" validate:"required,min=5,max=12,alphanum"`
 	Password   string `json:"password" validate:"required,min=8,max=32"`
-	RePassword string `json:"repassword" validate:"required"`
+	RePassword string `json:"repassword"`
 }
 
 func Signup(c *fiber.Ctx) error {
@@ -26,13 +26,10 @@ func Signup(c *fiber.Ctx) error {
 	err := valid.Struct(user)
 	if err != nil {
 		return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
+	} else if user.Password != user.RePassword {
+		return fiber.NewError(http.StatusUnprocessableEntity, "passwords don't match")
 	} else {
-		// check the username already taken ?
-		// dbUser := new(models.User)
-		// var count int64 = 0
-		// database.DB.Db.Where("username = ?", user.Username).Count(&count)
-		// if count == 0 {
-		// hashing password
+		// hash the password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 		if err != nil {
 			return fiber.NewError(http.StatusInternalServerError, err.Error())
@@ -43,8 +40,9 @@ func Signup(c *fiber.Ctx) error {
 		User.Password = string(hashedPassword)
 		// adding user to db
 		err = database.DB.Db.Create(&User).Error
+		// if user exist in db got an error
 		if err != nil {
-			return fiber.NewError(http.StatusConflict, "Username already taken.")
+			return fiber.NewError(http.StatusConflict, "username already taken")
 		}
 		return c.Status(http.StatusOK).JSON(User)
 	}
@@ -62,13 +60,13 @@ func Login(c *fiber.Ctx) error {
 		return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
 	} else {
 		dbUser := new(User)
-		err := database.DB.Db.Where("username = ?", user.Username).Find(&dbUser).Error
-		if err != nil {
-			return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
+		database.DB.Db.Where("username = ?", user.Username).Find(&dbUser)
+		if dbUser.Username == "" {
+			return fiber.NewError(http.StatusUnprocessableEntity, "wrong username or password")
 		} else {
 			err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(user.Password))
 			if err != nil {
-				return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
+				return fiber.NewError(http.StatusUnprocessableEntity, "wrong username or password")
 			} else {
 				// create token here jwt
 				return c.Status(200).JSON(fiber.Map{
