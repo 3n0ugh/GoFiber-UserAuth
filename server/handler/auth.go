@@ -2,22 +2,18 @@ package handler
 
 import (
 	"net/http"
-	"regexp"
 
 	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/database"
 	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/models"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var regexpUsername = regexp.MustCompile("^[a-zA-Z]+[0-9]{5,12}$")
-
-var regexpPassword = regexp.MustCompile("^[a-zA-Z]+[0-9]{8,32}$")
-
 type User struct {
-	Username   string `json:"username" validate:"required"`
-	Password   string `json:"password"`
-	RePassword string `json:"repassword"`
+	Username   string `json:"username" validate:"required,min=5,max=12,alphanum"`
+	Password   string `json:"password" validate:"required,min=8,max=32"`
+	RePassword string `json:"repassword" validate:"required"`
 }
 
 func Signup(c *fiber.Ctx) error {
@@ -25,15 +21,12 @@ func Signup(c *fiber.Ctx) error {
 	if err := c.BodyParser(user); err != nil {
 		return c.Status(400).JSON(err.Error())
 	}
-	// sonradan duruma gore duzenlenicek
-	if !regexpUsername.MatchString(user.Username) {
-		return fiber.NewError(http.StatusBadRequest, "Check Username!!")
-	} else if regexpPassword.MatchString(user.Password) {
-		return fiber.NewError(http.StatusBadRequest, "Check Password!!")
-	} else if user.RePassword != user.Password {
-		return fiber.NewError(http.StatusBadRequest, "Passwords Not Match!!")
+	// validate the request body
+	valid := validator.New()
+	err := valid.Struct(user)
+	if err != nil {
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	} else {
-
 		// check the username already taken ?
 		if err := database.DB.Db.Where("username = ?", user.Username).Limit(0).Find(&user.Username); err != nil {
 			// hashing password
