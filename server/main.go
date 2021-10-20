@@ -4,9 +4,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+
+	db "github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/database"
 )
 
 func main() {
+	db.ConnectDb()
 	app := fiber.New()
 
 	// HTTP Logger
