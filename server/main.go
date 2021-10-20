@@ -18,6 +18,8 @@ func main() {
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "localhost:8080",
 	}))
+	// Not Found Message
+	app.Use(notFound)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		// return c.SendString("Hello, world!")
@@ -28,4 +30,8 @@ func main() {
 	})
 
 	app.Listen(":8080")
+}
+
+func notFound(c *fiber.Ctx) error {
+	return c.SendString("Not Found - " + c.OriginalURL())
 }

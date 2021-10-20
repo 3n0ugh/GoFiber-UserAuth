@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -29,7 +30,7 @@ func ConnectDb() {
 	log.Println("connected")
 	db.Logger = logger.Default.LogMode(logger.Info)
 	log.Println("running migrations")
-	// db.AutoMigrate() // Here is the model &models.User{}
+	db.AutoMigrate(&models.User{}) // Here is the model &models.User{}
 
 	DB = Dbinstance{
 		Db: db,
