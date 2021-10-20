@@ -1,15 +1,15 @@
 package main
 
 import (
+	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/database"
+	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/router"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-
-	db "github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/database"
 )
 
 func main() {
-	db.ConnectDb()
+	database.ConnectDb()
 	app := fiber.New()
 
 	// HTTP Logger
@@ -18,8 +18,6 @@ func main() {
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "localhost:8080",
 	}))
-	// Not Found Message
-	app.Use(notFound)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		// return c.SendString("Hello, world!")
@@ -28,6 +26,12 @@ func main() {
 			"success": true,
 		})
 	})
+
+	// Setup Routes
+	router.SetupRoutes(app)
+
+	// Not Found Message
+	app.Use(notFound)
 
 	app.Listen(":8080")
 }
