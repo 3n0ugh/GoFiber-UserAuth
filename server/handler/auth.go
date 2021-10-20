@@ -25,31 +25,57 @@ func Signup(c *fiber.Ctx) error {
 	valid := validator.New()
 	err := valid.Struct(user)
 	if err != nil {
-		return fiber.NewError(http.StatusInternalServerError, err.Error())
+		return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
 	} else {
 		// check the username already taken ?
-		if err := database.DB.Db.Where("username = ?", user.Username).Limit(0).Find(&user.Username); err != nil {
-			// hashing password
-			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
-			if err != nil {
-				return fiber.NewError(http.StatusInternalServerError, err.Error())
-			}
-			// inserting into User model
-			User := new(models.User)
-			User.Username = user.Username
-			User.Password = string(hashedPassword)
-			// adding user to db
-			database.DB.Db.Create(&User)
-			return c.Status(http.StatusOK).JSON(User)
-		} else {
-			return fiber.NewError(http.StatusInternalServerError, "Username already taken.")
+		// dbUser := new(models.User)
+		// var count int64 = 0
+		// database.DB.Db.Where("username = ?", user.Username).Count(&count)
+		// if count == 0 {
+		// hashing password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+		if err != nil {
+			return fiber.NewError(http.StatusInternalServerError, err.Error())
 		}
+		// inserting into User model
+		User := new(models.User)
+		User.Username = user.Username
+		User.Password = string(hashedPassword)
+		// adding user to db
+		err = database.DB.Db.Create(&User).Error
+		if err != nil {
+			return fiber.NewError(http.StatusConflict, "Username already taken.")
+		}
+		return c.Status(http.StatusOK).JSON(User)
 	}
 }
 
 func Login(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{
-		"message": "login",
-		"success": true,
-	})
+	user := new(User)
+	if err := c.BodyParser(user); err != nil {
+		return c.Status(400).JSON(err.Error())
+	}
+	// validate the request body
+	valid := validator.New()
+	err := valid.Struct(user)
+	if err != nil {
+		return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
+	} else {
+		dbUser := new(User)
+		err := database.DB.Db.Where("username = ?", user.Username).Find(&dbUser).Error
+		if err != nil {
+			return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
+		} else {
+			err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(user.Password))
+			if err != nil {
+				return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
+			} else {
+				// create token here jwt
+				return c.Status(200).JSON(fiber.Map{
+					"message": "logged in",
+					"success": true,
+				})
+			}
+		}
+	}
 }
