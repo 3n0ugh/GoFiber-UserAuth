@@ -14,9 +14,9 @@ import (
 )
 
 type User struct {
-	Username   string `json:"username" validate:"required,min=5,max=12,alphanum"`
-	Password   string `json:"password" validate:"required,min=8,max=32"`
-	RePassword string `json:"repassword"`
+	Username string `json:"username" validate:"required,min=5,max=12,alphanum"`
+	Password string `json:"password" validate:"required,min=8,max=32"`
+	// RePassword string `json:"repassword"`
 }
 
 func Signup(c *fiber.Ctx) error {
@@ -29,8 +29,8 @@ func Signup(c *fiber.Ctx) error {
 	err := valid.Struct(user)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
-	} else if user.Password != user.RePassword {
-		return fiber.NewError(fiber.StatusUnprocessableEntity, "passwords don't match")
+		// } else if user.Password != user.RePassword {
+		// 	return fiber.NewError(fiber.StatusUnprocessableEntity, "passwords don't match")
 	} else {
 		// hash the password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)

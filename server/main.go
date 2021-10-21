@@ -16,7 +16,7 @@ func main() {
 	app.Use(logger.New())
 	// CORS
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "localhost:8080",
+		AllowOrigins: "http://localhost:8081, http://localhost:8080",
 	}))
 
 	app.Get("/", func(c *fiber.Ctx) error {
