@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net/http"
 	"os"
 	"time"
 
@@ -29,14 +28,14 @@ func Signup(c *fiber.Ctx) error {
 	valid := validator.New()
 	err := valid.Struct(user)
 	if err != nil {
-		return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
+		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
 	} else if user.Password != user.RePassword {
-		return fiber.NewError(http.StatusUnprocessableEntity, "passwords don't match")
+		return fiber.NewError(fiber.StatusUnprocessableEntity, "passwords don't match")
 	} else {
 		// hash the password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 		if err != nil {
-			return fiber.NewError(http.StatusInternalServerError, err.Error())
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 		// inserting into User model
 		User := new(models.User)
@@ -46,7 +45,7 @@ func Signup(c *fiber.Ctx) error {
 		err = database.DB.Db.Create(&User).Error
 		// if user exist in db got an error
 		if err != nil {
-			return fiber.NewError(http.StatusConflict, "username already taken")
+			return fiber.NewError(fiber.StatusConflict, "username already taken")
 		}
 		return createTokenSendResponse(c, User)
 	}
@@ -61,18 +60,18 @@ func Login(c *fiber.Ctx) error {
 	valid := validator.New()
 	err := valid.Struct(user)
 	if err != nil {
-		return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
+		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
 	} else {
 		dbUser := new(models.User)
 		// find the user from the database
 		database.DB.Db.Where("username = ?", user.Username).Find(&dbUser)
 		if dbUser.Username == "" {
-			return fiber.NewError(http.StatusUnprocessableEntity, "wrong username or password")
+			return fiber.NewError(fiber.StatusUnprocessableEntity, "wrong username or password")
 		} else {
 			// checking password with hashedPassword
 			err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(user.Password))
 			if err != nil {
-				return fiber.NewError(http.StatusUnprocessableEntity, "wrong username or password")
+				return fiber.NewError(fiber.StatusUnprocessableEntity, "wrong username or password")
 			} else {
 				return createTokenSendResponse(c, user)
 			}
@@ -91,13 +90,13 @@ func createTokenSendResponse(c *fiber.Ctx, user *models.User) error {
 	}
 	file, err := os.Open(".env")
 	if err != nil {
-		return fiber.NewError(http.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	defer file.Close()
 	jwtconfig := &jwtConfig{}
 	err = dotenv.NewDecoder(file).Decode(jwtconfig)
 	if err != nil {
-		return fiber.NewError(http.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	claims["username"] = user.Username
@@ -106,7 +105,7 @@ func createTokenSendResponse(c *fiber.Ctx, user *models.User) error {
 	// create java web token
 	t, err := token.SignedString([]byte(jwtconfig.Secret))
 	if err != nil {
-		return fiber.NewError(http.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(fiber.Map{
 		"message": "logged in",
