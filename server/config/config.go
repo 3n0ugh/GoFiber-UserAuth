@@ -8,10 +8,9 @@ import (
 )
 
 type Config struct {
-	ServerUrl     string        `env:"SERVER_URL"`
-	ServerTimeout time.Duration `env:"SERVER_TIMEOUT"`
+	ServerUrl string `env:"SERVER_URL"`
 
-	DatabaseName     string `env:"DATABASE_NAME"`
+	DatabaseName     string `env:"DB_NAME"`
 	DatabasePort     int16  `env:"DB_PORT"`
 	DatabaseUsername string `env:"DB_USER"`
 	DatabasePassword string `env:"DB_PASS"`
