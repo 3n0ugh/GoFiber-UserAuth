@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/gofiber/fiber/v2 v2.20.2
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golobby/dotenv v1.3.1
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	gorm.io/driver/postgres v1.1.2

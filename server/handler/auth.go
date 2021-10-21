@@ -2,11 +2,15 @@ package handler
 
 import (
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/database"
 	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/models"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt"
+	"github.com/golobby/dotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -60,20 +64,56 @@ func Login(c *fiber.Ctx) error {
 		return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
 	} else {
 		dbUser := new(User)
+		// find the user from the database
 		database.DB.Db.Where("username = ?", user.Username).Find(&dbUser)
 		if dbUser.Username == "" {
 			return fiber.NewError(http.StatusUnprocessableEntity, "wrong username or password")
 		} else {
+			// checking password with hashedPassword
 			err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(user.Password))
 			if err != nil {
 				return fiber.NewError(http.StatusUnprocessableEntity, "wrong username or password")
 			} else {
 				// create token here jwt
-				return c.Status(200).JSON(fiber.Map{
-					"message": "logged in",
-					"success": true,
-				})
+				// return c.Status(200).JSON(fiber.Map{
+				// 	"message": "logged in",
+				// 	"success": true,
+				// })
+				return createTokenSendResponse(c, &User{})
 			}
 		}
 	}
+}
+
+func createTokenSendResponse(c *fiber.Ctx, user *User) error {
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+
+	type jwtConfig struct {
+		Secret             string `env:"JWT_SECRET_KEY"`
+		ExpireMinutesCount int    `env:"JWT_EXPIRE_MINUTES"`
+	}
+	file, err := os.Open(".env")
+	if err != nil {
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
+	}
+	defer file.Close()
+	jwtconfig := &jwtConfig{}
+	err = dotenv.NewDecoder(file).Decode(jwtconfig)
+	if err != nil {
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
+	}
+
+	claims["username"] = user.Username
+	claims["exp"] = time.Now().Add(time.Minute * time.Duration(jwtconfig.ExpireMinutesCount)).Unix()
+
+	t, err := token.SignedString([]byte(jwtconfig.Secret))
+	if err != nil {
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{
+		"message": "logged in",
+		"success": true,
+		"data":    t,
+	})
 }

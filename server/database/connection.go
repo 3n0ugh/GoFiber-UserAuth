@@ -33,6 +33,7 @@ func ConnectDb() {
 	if err != nil {
 		panic(err)
 	}
+	defer file.Close()
 	err = dotenv.NewDecoder(file).Decode(config)
 	if err != nil {
 		panic(err)
