@@ -48,12 +48,12 @@ func Signup(c *fiber.Ctx) error {
 		if err != nil {
 			return fiber.NewError(http.StatusConflict, "username already taken")
 		}
-		return c.Status(http.StatusOK).JSON(User)
+		return createTokenSendResponse(c, User)
 	}
 }
 
 func Login(c *fiber.Ctx) error {
-	user := new(User)
+	user := new(models.User)
 	if err := c.BodyParser(user); err != nil {
 		return c.Status(400).JSON(err.Error())
 	}
@@ -63,7 +63,7 @@ func Login(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(http.StatusUnprocessableEntity, err.Error())
 	} else {
-		dbUser := new(User)
+		dbUser := new(models.User)
 		// find the user from the database
 		database.DB.Db.Where("username = ?", user.Username).Find(&dbUser)
 		if dbUser.Username == "" {
@@ -74,21 +74,17 @@ func Login(c *fiber.Ctx) error {
 			if err != nil {
 				return fiber.NewError(http.StatusUnprocessableEntity, "wrong username or password")
 			} else {
-				// create token here jwt
-				// return c.Status(200).JSON(fiber.Map{
-				// 	"message": "logged in",
-				// 	"success": true,
-				// })
-				return createTokenSendResponse(c, &User{})
+				return createTokenSendResponse(c, user)
 			}
 		}
 	}
 }
 
-func createTokenSendResponse(c *fiber.Ctx, user *User) error {
+func createTokenSendResponse(c *fiber.Ctx, user *models.User) error {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 
+	// take secret_key and expire time from .envfile
 	type jwtConfig struct {
 		Secret             string `env:"JWT_SECRET_KEY"`
 		ExpireMinutesCount int    `env:"JWT_EXPIRE_MINUTES"`
@@ -107,6 +103,7 @@ func createTokenSendResponse(c *fiber.Ctx, user *User) error {
 	claims["username"] = user.Username
 	claims["exp"] = time.Now().Add(time.Minute * time.Duration(jwtconfig.ExpireMinutesCount)).Unix()
 
+	// create java web token
 	t, err := token.SignedString([]byte(jwtconfig.Secret))
 	if err != nil {
 		return fiber.NewError(http.StatusInternalServerError, err.Error())
