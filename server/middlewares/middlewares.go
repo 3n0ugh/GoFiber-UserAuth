@@ -1,29 +1,16 @@
 package middlewares
 
 import (
-	"os"
-
+	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/config"
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v2"
-	"github.com/golobby/dotenv"
 )
 
 func Protected() func(c *fiber.Ctx) error {
-	type config struct {
-		jwtsecret string `env:"JWT_SECRET_KEY"`
-	}
-	file, _ := os.Open(".env")
-	// if err != nil {
-	// 	return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	// }
-	defer file.Close()
-	jwtconfig := &config{}
-	dotenv.NewDecoder(file).Decode(jwtconfig)
-	// if err != nil {
-	// 	return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	// }
+	jwtconfig, _ := config.GetConfig()
+
 	return jwtware.New(jwtware.Config{
-		SigningKey:   jwtconfig.jwtsecret,
+		SigningKey:   jwtconfig.JwtSecretKey,
 		ErrorHandler: jwtError,
 	})
 }

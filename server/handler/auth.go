@@ -1,26 +1,19 @@
 package handler
 
 import (
-	"os"
 	"time"
 
+	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/config"
 	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/database"
 	"github.com/3n0ugh/GoFiber-RestAPI-UserAuth/server/models"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt"
-	"github.com/golobby/dotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	Username string `json:"username" validate:"required,min=5,max=12,alphanum"`
-	Password string `json:"password" validate:"required,min=8,max=32"`
-	// RePassword string `json:"repassword"`
-}
-
 func Signup(c *fiber.Ctx) error {
-	user := new(User)
+	user := new(models.User)
 	if err := c.BodyParser(user); err != nil {
 		return c.Status(400).JSON(err.Error())
 	}
@@ -29,8 +22,6 @@ func Signup(c *fiber.Ctx) error {
 	err := valid.Struct(user)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
-		// } else if user.Password != user.RePassword {
-		// 	return fiber.NewError(fiber.StatusUnprocessableEntity, "passwords don't match")
 	} else {
 		// hash the password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
@@ -83,27 +74,17 @@ func createTokenSendResponse(c *fiber.Ctx, user *models.User) error {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 
-	// take secret_key and expire time from .envfile
-	type jwtConfig struct {
-		Secret             string `env:"JWT_SECRET_KEY"`
-		ExpireMinutesCount int    `env:"JWT_EXPIRE_MINUTES"`
-	}
-	file, err := os.Open(".env")
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
-	defer file.Close()
-	jwtconfig := &jwtConfig{}
-	err = dotenv.NewDecoder(file).Decode(jwtconfig)
+	// Get the jwt configs from dotenv
+	config, err := config.GetConfig()
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	claims["username"] = user.Username
-	claims["exp"] = time.Now().Add(time.Minute * time.Duration(jwtconfig.ExpireMinutesCount)).Unix()
+	claims["exp"] = time.Now().Add(time.Minute * config.JwtExpireTime).Unix()
 
 	// create java web token
-	t, err := token.SignedString([]byte(jwtconfig.Secret))
+	t, err := token.SignedString([]byte(config.JwtSecretKey))
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
