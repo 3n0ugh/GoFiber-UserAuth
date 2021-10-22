@@ -13,9 +13,10 @@ import (
 )
 
 func Signup(c *fiber.Ctx) error {
+	// parse request body into User model
 	user := new(models.User)
 	if err := c.BodyParser(user); err != nil {
-		return c.Status(400).JSON(err.Error())
+		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
 	}
 	// validate the request body
 	valid := validator.New()
@@ -29,16 +30,14 @@ func Signup(c *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 		// inserting into User model
-		User := new(models.User)
-		User.Username = user.Username
-		User.Password = string(hashedPassword)
-		// adding user to db
-		err = database.DB.Db.Create(&User).Error
+		user.Password = string(hashedPassword)
+		// insert into database
+		err = database.DB.Db.Create(&user).Error
 		// if user exist in db got an error
 		if err != nil {
 			return fiber.NewError(fiber.StatusConflict, "username already taken")
 		}
-		return createTokenSendResponse(c, User)
+		return createTokenSendResponse(c, user)
 	}
 }
 
